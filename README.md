@@ -10,6 +10,7 @@
 * pandas
 * wonambi
 * natsort
+
 Recommended to use virtualenv.
 
 ## Run
@@ -53,6 +54,7 @@ time and finds the videos sample numbers by using this distance and the relative
 (Dummy numbers are not relative to actual data)
 
 v1: video start time
+
 v2: video end time
 
 s1: sync start time and sample
@@ -73,12 +75,17 @@ v1 = 11:00:00am         v2 = 11:02:00am
 s1 = 10:58:30am, 100    s2 = 11:01:30am, 280
 
 so...
+
 r1 = (v1 - s1) x sample rate = 90 seconds x 1 sample/second = 90 samples
+
 r2 = (v2 - s2) x sample rate = 30 seconds x 1 sample/second = 30 samples
+
 v1 = s1 + r1 = sample 100 + 90 samples = sample 190
+
 v2 = s2 + r2 = sample 280 + 30 samples = sample 310
 
 thus...
+
 video starts at sample 190 and ends at sample 310
 
 ## Notes:
