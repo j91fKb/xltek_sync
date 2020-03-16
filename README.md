@@ -52,9 +52,13 @@ time and finds the videos sample numbers by using this distance and the relative
 (Dummy numbers are not relative to actual data)
 
 v1: video start time
+
 v2: video end time
+
 s1: sync start time and sample
+
 s2: next sync start time and sample
+
 sample rate = 1 sample/second throughout
 
 ```
@@ -65,6 +69,7 @@ relative              |------------------|                   |---------|
 ```
 
 v1 = 11:00:00am         v2 = 11:02:00am
+
 s1 = 10:58:30am, 100    s2 = 11:01:30am, 280
 
 so...
