@@ -57,10 +57,12 @@ s1: sync start time and sample
 s2: next sync start time and sample
 sample rate = 1 sample/second throughout
 
+```
 video timeline                           v1----------------------------v2
 snc timeline     ----s1-------------------------------------s2----------------
 relative              |------------------|                   |---------|
                                r1                                r2
+```
 
 v1 = 11:00:00am         v2 = 11:02:00am
 s1 = 10:58:30am, 100    s2 = 11:01:30am, 280
