@@ -40,9 +40,10 @@ python3 <path to this script> <path to xltek folder> <optional output directory>
 ```
 ## Output:
 Output files are stored in the xltek folder in a folder called 'sync' unless otherwise specified.
-File 1: '..._video_sync.csv' contains the information on the synced videos
-File 2: '..._sync_triggers.csv' contains the sync trigger information
-File 3: '..._header.npy' contains the header information
+* '..._video_sync.csv' contains the information on the synced videos
+* '..._sync_triggers.csv' contains the sync trigger information
+* '..._video_frame_sample.csv' contains lookup table for each video frame to the corresponding sample
+* '..._header.npy' contains the header information
 
 ## Process Description:
 This script uses the wonambi python package to read the header information from an xltek folder. The header contains
