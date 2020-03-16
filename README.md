@@ -1,7 +1,7 @@
 # Sync Xltek Clinical Recordings with Video
 
 ## Dependencies
-* python > 3.6
+* >= python3.6
 
 #### Install with pip
 * opencv-python
