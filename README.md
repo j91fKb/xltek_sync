@@ -14,10 +14,11 @@ Recommended to use virtualenv.
 
 ## Run
 ### Python Console
-
+First run the file..
 ```python
 runfile(<path to this script>)
 ```
+Then run either.
 #### Single Xltek Folder
 ```python
 # outputs results into this folder
@@ -52,7 +53,6 @@ time and finds the videos sample numbers by using this distance and the relative
 (Dummy numbers are not relative to actual data)
 
 v1: video start time
-
 v2: video end time
 
 s1: sync start time and sample
