@@ -3,7 +3,7 @@
 ## Dependencies
 * python > 3.6
 
-### Install with pip
+#### Install with pip
 * opencv-python
 * matplotlib
 * numpy
@@ -11,38 +11,38 @@
 * wonambi
 * natsort
 
-Recommended to use virtualenv.
+Recommended to use venv.
 
-## Run
-### Python Console
-First run the file..
+## How to Run
+#### Python Console
+First run the file.
 ```python
-runfile(<path to this script>)
+runfile(<path to main.py>)
 ```
-Then run either.
-#### Single Xltek Folder
+Then run either:
+##### Single Xltek Folder
 ```python
 # outputs results into this folder
 k = Sync(<path to your xltek folder>, output_dir=<optional output directory>) 
 ```
-#### Entire Subject's Xltek Folder
+##### Entire Subject's Xltek Folder
 Assumes that individual xltek folders are one level down from input folder.
 ```python
 # outputs results into this folder
 k = run_all(<path to subject xltek folder>, output_dir=<optional output directory>)
 ```
 
-### Command Line
+#### Command Line
 Input single xltek folder or subject's xltek folder and then follow prompt.
 ```
 # outputs results into this folder
-python3 <path to this script> <path to xltek folder> <optional output directory>
+python3 <path to main.py> <path to xltek folder> <optional output directory>
 ```
 ## Output:
 Output files are stored in the xltek folder in a folder called 'sync' unless otherwise specified.
 * '..._video_sync.csv' contains the information on the synced videos
 * '..._sync_triggers.csv' contains the sync trigger information
-* '..._video_frame_sample.csv' contains lookup table for each video frame to the corresponding sample
+* '..._video_frame_sample.csv' contains lookup table for the sample number to each frame of each video
 * '..._header.npy' contains the header information
 
 ## Process Description:
@@ -51,7 +51,7 @@ data on the sync triggers in the format (sample, time which sample occurred) and
 start time, end time). It then calculates the time difference between the video times and the nearest preceding sync
 time and finds the videos sample numbers by using this distance and the relative sample frequency.
 
-### Example:
+#### Example:
 (Dummy numbers are not relative to actual data)
 
 v1: video start time
