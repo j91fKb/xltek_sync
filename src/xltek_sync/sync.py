@@ -1,7 +1,3 @@
-"""
-Sync up xltek videos with the physiological data.
-"""
-
 import os
 import sys
 import cv2
@@ -14,49 +10,42 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from natsort import natsorted
 from pandas.plotting import register_matplotlib_converters
+from .utils import time_to_sample, timezone_shift
 
 matplotlib.use('Agg')
 register_matplotlib_converters()
 
 
-# calculate sync time shift from video time since there maybe a precise 4 or 5 hour difference (timezone issue)
-def timezone_shift(vid_time, sys_time):
-    shift = vid_time - sys_time
-    return timedelta(hours=shift.total_seconds()//3600)
-
-
-# get sample from video time
-def time_to_sample(vid_time, snc_time, snc_sample, frame_rate):
-    return round(snc_sample + (vid_time-snc_time).total_seconds()*frame_rate)
-
-
-# Main operation
 class Sync:
     def __init__(self, xltek_dir, output_dir=None):
         # xltek folder
         self.read_loc = Path(xltek_dir)
-        
+
         # output folder
-        if output_dir:  
+        if output_dir:
             self.output_dir = Path(output_dir)
         else:
             self.output_dir = self.read_loc
 
         # grab header information
         print('GRABBING INFORMATION...')
-        
         try:
             self.hdr = kx.Ktlx(self.read_loc).return_hdr()
-        # sometimes grabbing header information may fail
         except:
+            # sometimes grabbing header information may fail
             raise Exception('Failed to grab header information.')
         self.channels = self._get_channels()
 
-        self.vid = self._get_vid()  # video data is a pandas data frame, includes sync information once complete
+        # video data is a pandas data frame, includes sync information once complete
+        self.vid = self._get_vid()
         self.snc = self._get_snc()  # sync trigger data is a pandas data frame
 
+        # intialize other variables
+        self.vid_frame_sample = pd.DataFrame([])
+
+    def run(self):
         # sync it up
-        self.sync_up()
+        self.sync()
 
         # get sample number for each frame
         self.vid_frame_sample = self._frame_to_sample()
@@ -78,7 +67,8 @@ class Sync:
         vid_hdr = ['name', 'start time', 'end time', 'n frames',
                    'start sample', 'end sample', 'start frame', 'end frame',
                    'notes']
-        vid = pd.DataFrame(np.nan, index=range(len(hdr[5]['vtc'][0])), columns=vid_hdr)
+        vid = pd.DataFrame(np.nan, index=range(
+            len(hdr[5]['vtc'][0])), columns=vid_hdr)
 
         # read video data from header and add to data frame
         # video data is in the format = file name, date start time, date end time
@@ -97,7 +87,8 @@ class Sync:
 
         # set up a data frame for the sync data
         snc_hdr = ['sample', 'time', 'frame rate']
-        snc = pd.DataFrame(np.nan, index=range(len(hdr[5]['snc'][0]) + 1), columns=snc_hdr)
+        snc = pd.DataFrame(np.nan, index=range(
+            len(hdr[5]['snc'][0]) + 1), columns=snc_hdr)
 
         # read sync data from header and add to data frame
         # sync data is in the format = sample number, date time for this sample
@@ -109,20 +100,22 @@ class Sync:
 
         # estimate that the overall frame rate = initial epoch's frame rate (for sample 0 to first trigger)
         snc.loc[0, 'frame rate'] = (snc['sample'].iloc[-1] - snc['sample'][1]) \
-                                   / (snc['time'].iloc[-1] - snc['time'][1]).total_seconds()
+            / (snc['time'].iloc[-1] - snc['time'][1]).total_seconds()
 
         # find system start time by using the estimated frame rate
         snc.loc[0, 'sample'] = 0
         snc.loc[0, 'time'] = kx.convert_sample_to_video_time(
-            0, snc['frame rate'][0], list(snc['sample'][1:]), list(snc['time'][1:])
+            0, snc['frame rate'][0], list(
+                snc['sample'][1:]), list(snc['time'][1:])
         )
 
         # correct for timezone shift between video and sync
-        snc['time'] += timezone_shift(self.vid['start time'][0], snc['time'][0])
+        snc['time'] += timezone_shift(self.vid['start time']
+                                      [0], snc['time'][0])
 
         return snc
 
-    def sync_up(self):
+    def sync(self):
         print('SYNCING XLTEK...')
 
         vid = self.vid
@@ -188,8 +181,10 @@ class Sync:
 
                     # update the end frame of the video to when sampling ends
                     vid.loc[vid_ind, 'end frame'] = round(
-                        (snc['time'].iloc[-1] - vid['start time'][vid_ind])  # length of video within sync times
-                        / (vid['end time'][vid_ind] - vid['start time'][vid_ind])  # total length of video
+                        # length of video within sync times
+                        (snc['time'].iloc[-1] - vid['start time'][vid_ind])
+                        # total length of video
+                        / (vid['end time'][vid_ind] - vid['start time'][vid_ind])
                         * vid['n frames'][vid_ind]  # number of frames
                     )
                     vid.loc[vid_ind, 'notes'] = 'overhang end'
@@ -248,7 +243,8 @@ class Sync:
         vid = self.vid
 
         # set up a data frame
-        hdr_row = np.arange(1, np.nanmax(vid['n frames'])+1)  # make enough rows for largest video
+        # make enough rows for largest video
+        hdr_row = np.arange(1, np.nanmax(vid['n frames'])+1)
         hdr_col = vid['name']  # column headers are video names
         vid_frame_sample = pd.DataFrame(np.nan, index=hdr_row, columns=hdr_col)
         vid_frame_sample.index.names = ['frame']
@@ -258,13 +254,15 @@ class Sync:
             if not np.isnan(vid['start frame'][vid_ind]):
                 # convert each frame to a fraction of the video duration
                 vid_fraction = np.arange(vid['start frame'][vid_ind], vid['end frame'][vid_ind] + 1) \
-                               / (vid['end frame'][vid_ind]) - (vid['start frame'][vid_ind] / vid['end frame'][vid_ind])
+                    / (vid['end frame'][vid_ind]) - (vid['start frame'][vid_ind] / vid['end frame'][vid_ind])
 
                 # get the number of samples in the video
-                vid_sample_length = vid['end sample'][vid_ind] - vid['start sample'][vid_ind]
+                vid_sample_length = vid['end sample'][vid_ind] - \
+                    vid['start sample'][vid_ind]
 
                 # multiply video fraction with sample length and add to the starting sample
-                vid_frame_sample[vid_name].loc[vid['start frame'][vid_ind]:vid['end frame'][vid_ind]] = np.round(vid_fraction * vid_sample_length + vid['start sample'][vid_ind])
+                vid_frame_sample[vid_name].loc[vid['start frame'][vid_ind]:vid['end frame'][vid_ind]] = np.round(
+                    vid_fraction * vid_sample_length + vid['start sample'][vid_ind])
 
         return vid_frame_sample
 
@@ -287,10 +285,14 @@ class Sync:
 
         # save all data
         np.save(folder_stem / (file_stem + '_header.npy'), self.hdr)
-        self.channels.to_csv(folder_stem / (file_stem + '_channels.csv'), index=False)
-        self.vid.to_csv(folder_stem / (file_stem + '_video_sync.csv'), index=False)
-        self.snc.to_csv(folder_stem / (file_stem + '_sync_triggers.csv'), index=False)
-        self.vid_frame_sample.to_csv(folder_stem / (file_stem + '_video_frame_sample.csv'))
+        self.channels.to_csv(
+            folder_stem / (file_stem + '_channels.csv'), index=False)
+        self.vid.to_csv(folder_stem / (file_stem +
+                                       '_video_sync.csv'), index=False)
+        self.snc.to_csv(folder_stem / (file_stem +
+                                       '_sync_triggers.csv'), index=False)
+        self.vid_frame_sample.to_csv(
+            folder_stem / (file_stem + '_video_frame_sample.csv'))
 
         print("SAVED DATA")
 
@@ -309,7 +311,8 @@ class Sync:
         plt.plot(np.array(vid[['start time', 'end time']]).reshape(-1),
                  np.array(vid[['start sample', 'end sample']]).reshape(-1),
                  'k.', markersize=2, label='Video')
-        plt.plot(snc['time'], snc['sample'], 'b|', markersize=10, label='Sync Triggers')
+        plt.plot(snc['time'], snc['sample'], 'b|',
+                 markersize=10, label='Sync Triggers')
         plt.legend()
         plt.savefig(folder_stem / (file_stem + '_sync.png'))
         plt.close()
@@ -318,8 +321,10 @@ class Sync:
         plt.title('Sampling Frequency (should be consistent)')
         plt.xlabel('Date Time')
         plt.ylabel('Sampling Frequency (Hz)')
-        x = np.ndarray.flatten(np.array([snc['time'].iloc[:-1], snc['time'].iloc[1:]]), order='F')
-        y = np.ndarray.flatten(np.array([snc['frame rate'], snc['frame rate']]), order='F')[:-2]
+        x = np.ndarray.flatten(
+            np.array([snc['time'].iloc[:-1], snc['time'].iloc[1:]]), order='F')
+        y = np.ndarray.flatten(
+            np.array([snc['frame rate'], snc['frame rate']]), order='F')[:-2]
         plt.plot(x, y, 'k')
 
         # adjust sampling frequency y axis if fluctuations are small
@@ -331,78 +336,6 @@ class Sync:
         plt.close()
 
         print('SAVED PLOTS')
-
-
-# Run on a subjects entire folder
-def run_all(pt_xltek_dir, output_dir=None):
-    pt_xltek_dir = Path(pt_xltek_dir)
-
-    # grab xltek subfolders
-    sub_dirs = natsorted([(pt_xltek_dir / f) for f in os.listdir(pt_xltek_dir) if os.path.isdir(pt_xltek_dir / f)])
-
-    # main loop through all subfolders
-    any_failed = False
-    all_data = {}
-    for sub_dir in sub_dirs:
-        print('Working on', sub_dir)
-        sub_dir_name = os.path.split(sub_dir)[-1]
-
-        # make a sub directory in the output folder for each xltek folder
-        if output_dir:
-            output_sub_dir = Path(output_dir) / sub_dir_name
-            if not os.path.isdir(output_sub_dir):
-                os.mkdir(output_sub_dir)
-        else:
-            output_sub_dir = None
-
-        # sync up
-        try:
-            all_data[sub_dir_name] = Sync(sub_dir, output_sub_dir)
-        except:
-            all_data[sub_dir_name] = 'Failed'
-            any_failed = True
-
-        print("==============================================")
-
-    # print any failed folders
-    if any_failed:
-        print('The following folders failed:')
-        for name, output in all_data.items():
-            if output == 'Failed':
-                print(name)
-
-    return all_data
-
-
-if __name__ == "__main__":
-    if len(sys.argv) == 2:
-        case = input("Type in 1 - for single xltek folder, 0 - for entire subject's xltek folder: ")
-        while case:
-            if case == '1':
-                k = Sync(sys.argv[1])
-                break
-            elif case == '0':
-                k = run_all(sys.argv[1])
-                break
-            elif case == 'q':
-                break
-            else:
-                case = input("Please enter 1, 0, or type in q to quit: ")
-    elif len(sys.argv) == 3:
-        case = input("Type in 1 - for single xltek folder, 0 - for entire subject's xltek folder: ")
-        while case:
-            if case == '1':
-                k = Sync(sys.argv[1], output_dir=sys.argv[2])
-                break
-            elif case == '0':
-                k = run_all(sys.argv[1], output_dir=sys.argv[2])
-                break
-            elif case == 'q':
-                break
-            else:
-                case = input("Please enter 1, 0, or type in q to quit: ")
-
-
 
 # WIP
 #
